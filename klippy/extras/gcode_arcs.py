@@ -27,6 +27,8 @@ E_AXIS = 3
 class ArcSupport:
 
     def __init__(self, config):
+        raise config.error("The gcode_arcs module is not supported in this version of klipper!")
+
         self.printer = config.get_printer()
         self.mm_per_arc_segment = config.getfloat('resolution', 1., above=0.0)
 
