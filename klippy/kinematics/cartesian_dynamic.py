@@ -9,9 +9,12 @@ class CartKinematics:
     def __init__(self, toolhead, config):
         self.printer = config.get_printer()
 
+        self.axis_count = config.getint('axis_count', 8, 1, 8)
+        self.axis_list = 'xyzwabcd'[:self.axis_count]
+
         self.rails = [stepper.LookupMultiRail(config.getsection('stepper_' + n))
-                      for n in 'xyzwab']
-        for rail, axis in zip(self.rails, 'xyzwab'):
+                      for n in self.axis_list]
+        for rail, axis in zip(self.rails, self.axis_list):
             rail.setup_itersolve('cartesian_stepper_alloc', axis.encode())
         ranges = [r.get_range() for r in self.rails]
         self.axes_min = toolhead.Coord(*[r[0] for r in ranges], e=0.)
@@ -23,12 +26,7 @@ class CartKinematics:
         self.printer.register_event_handler("stepper_enable:motor_off",
                                             self._motor_off)
         # Setup boundary checks
-        max_velocity, max_accel = toolhead.get_max_velocity()
-        # self.max_z_velocity = config.getfloat('max_z_velocity', max_velocity,
-        #                                       above=0., maxval=max_velocity)
-        # self.max_z_accel = config.getfloat('max_z_accel', max_accel,
-        #                                    above=0., maxval=max_accel)
-        self.limits = [(1.0, -1.0)] * 6
+        self.limits = [(1.0, -1.0)] * self.axis_count
     def get_steppers(self):
         return [s for rail in self.rails for s in rail.get_steppers()]
     def calc_position(self, stepper_positions):
@@ -61,14 +59,14 @@ class CartKinematics:
     def home(self, homing_state):
         # Each axis is homed independently and in order
         for axis in homing_state.get_axes():
-            if axis >= 6:
+            if axis >= self.axis_count:
                 continue
             self.home_axis(homing_state, axis, self.rails[axis])
     def _motor_off(self, print_time):
-        self.limits = [(1.0, -1.0)] * 6
+        self.limits = [(1.0, -1.0)] * self.axis_count
     def _check_endstops(self, move):
         end_pos = move.end_pos
-        for i in range(6):
+        for i in range(self.axis_count):
             if (move.axes_d[i]
                 and (end_pos[i] < self.limits[i][0]
                      or end_pos[i] > self.limits[i][1])):
@@ -78,7 +76,7 @@ class CartKinematics:
     def check_move(self, move):
         self._check_endstops(move)
     def get_status(self, eventtime):
-        axes = [a for a, (l, h) in zip("xyzwab", self.limits) if l <= h]
+        axes = [a for a, (l, h) in zip(self.axis_list, self.limits) if l <= h]
         return {
             'homed_axes': "".join(axes),
             'axis_minimum': self.axes_min,

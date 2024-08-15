@@ -23,11 +23,6 @@ class CartKinematics:
         self.printer.register_event_handler("stepper_enable:motor_off",
                                             self._motor_off)
         # Setup boundary checks
-        max_velocity, max_accel = toolhead.get_max_velocity()
-        # self.max_z_velocity = config.getfloat('max_z_velocity', max_velocity,
-        #                                       above=0., maxval=max_velocity)
-        # self.max_z_accel = config.getfloat('max_z_accel', max_accel,
-        #                                    above=0., maxval=max_accel)
         self.limits = [(1.0, -1.0)] * 8
     def get_steppers(self):
         return [s for rail in self.rails for s in rail.get_steppers()]
